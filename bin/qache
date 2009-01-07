@@ -1,0 +1,6 @@
+#!/usr/bin/env ruby
+
+require "qache/runner"
+
+Qache::Runner.run
+

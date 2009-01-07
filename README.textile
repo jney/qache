@@ -1,0 +1,25 @@
+h1. Qache
+
+h2. Summary
+
+"Qache":http://github.com/jney/qache is a ruby queue server/client using "memcacheq":http://memcachedb.org/memcacheq/.
+"Qache":http://github.com/jney/qache code is inspired by "Starling":http://github.com/starling/starling.
+
+See the
+"CHANGELOG":http://github.com/jney/jney/tree/master/CHANGELOG for contribution details.
+
+"Qache":http://github.com/jney/qache has the following dependencies:
+
+* "MemcacheQ":http://memcachedb.org/memcacheq/
+* memcache gem >= 1.5.0
+* rspec gem >= 1.1.4 (for specs only, not runtime)
+
+h2. Installation
+
+To install the Qache gem run the following:
+
+  sudo gem install jney-qache
+  
+And to enable the Qache queue in your project just require @qache@:
+
+  require 'qache'

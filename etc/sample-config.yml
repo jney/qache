@@ -1,0 +1,9 @@
+qache:
+  daemonize: true
+  path: /tmp/qache/
+  pid_file: /tmp/qache/qache.pid
+  port: 22201
+  timeout: 0
+  syslog_channel: qache-jney
+  log_level: DEBUG
+
