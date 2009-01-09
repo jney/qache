@@ -17,9 +17,24 @@ See the
 h2. Installation
 
 To install the Qache gem run the following:
-
+  
+  gem sources -a http://gems.github.com/
   sudo gem install jney-qache
   
 And to enable the Qache queue in your project just require @qache@:
 
   require 'qache'
+  
+h2. Quick Start Usage
+
+h2. Know Issues
+
+h2. TODO
+
+* Benchmark Qache vs other Ruby solutions (specially Starling)
+
+h2. Authors
+
+* Jean-Sébastien Ney <jeansebastien.ney@gmail.com>
+
+h2. Copyright
