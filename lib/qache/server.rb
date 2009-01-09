@@ -24,7 +24,7 @@ module Qache
     # Initialize a new memcacheQ server and immediately start processing
     # requests.
     #
-    # +opts+ is an optional hash, whose valid options are:
+    # +options+ is an optional hash, whose valid options are:
     #
     #   [:host]     Host on which to listen (default is 127.0.0.1).
     #   [:port]     Port on which to listen (default is 22122).
@@ -34,17 +34,19 @@ module Qache
     #   [:loglevel] Logger verbosity. Default is Logger::ERROR.
     #
     # Other options are ignored.
-    def self.start(opts = {})
-      new(opts).run
+    def self.start(options = {})
+      server = new(options)
+      server.run
+      return server
     end
 
     ##
     # Initialize a new Starling server, but do not accept connections or
     # process requests.
     #
-    # +opts+ is as for +start+
-    def initialize(opts = {})
-      @opts = {
+    # +options+ is as for +start+
+    def initialize(options = {})
+      @options = {
         :daemonize      => DEFAULT_DAEMONIZE,
         :host           => DEFAULT_HOST,
         :path           => DEFAULT_PATH,
@@ -52,41 +54,64 @@ module Qache
         :port           => DEFAULT_PORT,
         :threads_number => DEFAULT_THREADS_NUMBER,
         :timeout        => DEFAULT_TIMEOUT
-      }.merge(opts)
+      }.merge(options)
       
       @stats = {}
     end
 
     ##
-    # Start listening and processing requests.
+    # Return full host string host:port
+    def address
+      @address ||= "#{@options[:host]}:#{@options[:port]}"
+    end
+
+    ## 
+    # Return a basic memcache client
+    def client
+      @client ||= MemCache.new(address)
+    end
+
+    def daemonize?
+      @options[:daemonize]
+    end
+
+    ##
+    # Start memcacheq server with wanted options
+    # TODO:
+    # manage if a process is already running
     def run
       @stats[:start_time] = Time.now
 
-      @@logger = case @opts[:logger]
-                 when IO, String; Logger.new(@opts[:logger])
-                 when Logger; @opts[:logger]
+      @@logger = case @options[:logger]
+                 when IO, String  then Logger.new(@options[:logger])
+                 when Logger      then @options[:logger]
                  else; Logger.new(STDERR)
                  end
-      @@logger = SyslogLogger.new(@opts[:syslog_channel]) if @opts[:syslog_channel]
+      @@logger = SyslogLogger.new(@options[:syslog_channel]) if @options[:syslog_channel]
 
-      @@logger.level = eval("Logger::#{@opts[:log_level].upcase}") rescue Logger::ERROR
-
-      STDOUT.puts "memcacheq STARTUP on #{address}"
-      @@logger.info "memcacheq STARTUP on #{address}"
+      @@logger.level = eval("Logger::#{@options[:log_level].upcase}") rescue Logger::ERROR
 
       command = [
         "memcacheq",
         ("-d" if daemonize?),
-        "-l #{@opts[:host]}",
-        "-H #{@opts[:path]}",
-        ("-P #{@opts[:pid_file]}" if daemonize?), # can only be used if in daemonize mode
-        "-p #{@opts[:port]}",
-        "-t #{@opts[:threads_number]}"
+        "-l #{@options[:host]}",
+        "-H #{@options[:path]}",
+        ("-P #{@options[:pid_file]}" if daemonize?), # can only be used if in daemonize mode
+        "-p #{@options[:port]}",
+        "-t #{@options[:threads_number]}"
       ].compact.join(' ')
       
+      log("STARTING UP on #{address}")
+      log("with command #{command}")
+      # fork do
+      #   begin
+      #     exec("mm") 
+      #   rescue
+      #     
+      #   end
+      # end
       unless system(*command)
-        STDERR.puts "memcacheq error while starting #{address}"
-        @@logger.info "memcacheq error while starting #{address}"
+        log("ERROR while starting #{address}", :error)
         raise 
       end
     end
@@ -95,31 +120,42 @@ module Qache
       @@logger
     end
     
+    def pid
+      @pid ||= stats["pid"]
+    end
+    
     ##
     # Stop accepting new connections and shutdown gracefully.
     def stop(code=3)
-      STDOUT.puts "Stopping memcacheq..."
-      Process.kill(code, stats["pid"])
+      log("STOPPING...")
+      Process.kill(code, pid)
+    end
+    
+    ##
+    # Stop every memcached process.
+    # FIXME: a little bit to hardcore now
+    def self.stop(code=3)
+      pids = IO.popen('ps ax').readline.collect do |line|
+        if line =~ /[ ]*(\d+).*memcacheq.*/
+          Process.kill(code, $1)
+        end
+      end
     end
 
     def stats(stat = nil) #:nodoc:
       @stats.merge(client.stats[address])
     end
-
-    ##
-    # Return full host string host:port
-    def address
-      @address ||= "#{@opts[:host]}:#{@opts[:port]}"
-    end
     
-    ## 
-    # Return a basic memcache client
-    def client
-      @client ||= MemCache.new(address)
-    end
-    
-    def daemonize?
-      @opts[:daemonize]
+    private
+    def log(msg, severity = :info)
+      case severity
+      when :info
+        STDOUT.puts "\n[qache] #{msg}"
+        @@logger.info "[qache] #{msg}"
+      when :error
+        STDERR.puts "\n[qache] #{msg}"
+        @@logger.error "[qache] #{msg}"
+      end
     end
   end
 end
