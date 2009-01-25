@@ -3,7 +3,6 @@ require "qache"
 
 describe "qache client" do
   it "should start a client" do
-    puts "mmmmm"
     # first we start a server
     @server = Qache::Server.start
     # then we start a server

@@ -126,14 +126,17 @@ module Qache
     
     ##
     # Stop accepting new connections and shutdown gracefully.
-    def stop(code=3)
+    def stop(code=3, wait_while_stopping=false)
       log("STOPPING...")
       Process.kill(code, pid)
+      if wait_while_stopping
+        # FIXME got error using Process.waitpid(pid)
+      end
     end
     
     ##
     # Stop every memcached process.
-    # FIXME: a little bit to hardcore now
+    # FIXME: a little bit too hardcore now
     def self.stop(code=3)
       pids = IO.popen('ps ax').readline.collect do |line|
         if line =~ /[ ]*(\d+).*memcacheq.*/

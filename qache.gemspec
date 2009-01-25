@@ -11,7 +11,6 @@ spec = Gem::Specification.new do |s|
   s.email                     = "jeansebastien.ney@gmail.com"
   s.homepage                  = "http://moses.fr"
   s.require_paths             = ["lib"]
-  s.autorequire               = "qache"
   s.files                     = %w(CHANGELOG LICENSE README.textile Rakefile) + Dir.glob("{lib,specs}/**/*")
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.rubygems_version          = "1.2.0"
