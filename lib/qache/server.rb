@@ -9,7 +9,7 @@ here = File.dirname(__FILE__)
 
 module Qache
   class Server
-    attr_reader :logger
+    attr_reader   :logger
 
     DEFAULT_DAEMONIZE       = true          unless defined?(DEFAULT_DAEMONIZE)
     DEFAULT_FILE            = "data.db"     unless defined?(DEFAULT_FILE)
@@ -77,8 +77,6 @@ module Qache
 
     ##
     # Start memcacheq server with wanted options
-    # TODO:
-    # manage if a process is already running
     def run
       @stats[:start_time] = Time.now
 
@@ -93,26 +91,23 @@ module Qache
 
       command = [
         "memcacheq",
-        ("-d" if daemonize?),
+        # ("-d" if daemonize?),
         "-l #{@options[:host]}",
         "-H #{@options[:path]}",
-        ("-P #{@options[:pid_file]}" if daemonize?), # can only be used if in daemonize mode
+        # ("-P #{@options[:pid_file]}" if daemonize?), # can only be used if in daemonize mode
         "-p #{@options[:port]}",
-        "-t #{@options[:threads_number]}"
+        "-t #{@options[:threads_number]}",
+        ">> #{}"
       ].compact.join(' ')
       
       log("STARTING UP on #{address}")
       log("with command #{command}")
-      # fork do
-      #   begin
-      #     exec("mm") 
-      #   rescue
-      #     
-      #   end
-      # end
-      unless system(*command)
+      
+      begin 
+        @pid = fork{ exec(command) }
+      rescue Errno::ENOENT => e
         log("ERROR while starting #{address}", :error)
-        raise 
+        raise e
       end
     end
 
@@ -120,31 +115,15 @@ module Qache
       @@logger
     end
     
-    def pid
-      @pid ||= stats["pid"]
-    end
-    
     ##
     # Stop accepting new connections and shutdown gracefully.
-    def stop(code=3, wait_while_stopping=false)
+    def stop(code=3, wait_while_stopping=true)
       log("STOPPING...")
-      Process.kill(code, pid)
-      if wait_while_stopping
-        # FIXME got error using Process.waitpid(pid)
-      end
+      Process.kill(code, @pid)
+      Process.waitall if wait_while_stopping
+      @stats[:end_time] = Time.now
     end
     
-    ##
-    # Stop every memcached process.
-    # FIXME: a little bit too hardcore now
-    def self.stop(code=3)
-      pids = IO.popen('ps ax').readline.collect do |line|
-        if line =~ /[ ]*(\d+).*memcacheq.*/
-          Process.kill(code, $1)
-        end
-      end
-    end
-
     def stats(stat = nil) #:nodoc:
       @stats.merge(client.stats[address])
     end

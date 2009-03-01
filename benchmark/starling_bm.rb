@@ -7,4 +7,5 @@ puts "== launching first benchmark"
 puts "=" * 80
 Benchmark.bm do |x|
   x.report("starling") {  }
+  x.report("qache")
 end
